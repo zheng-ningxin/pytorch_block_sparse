@@ -205,7 +205,7 @@ class BlockSparseLinear(nn.Module):
             BlockSparseMatrixConstructor = BlockSparseMatrixEmulator
 
         if torch_nn_linear is not None:
-            block_mask = self.get_block_mask(weight.data, block_shape, density)
+            block_mask = self.get_block_mask(torch_nn_linear.weight.data, block_shape, density)
             with torch.no_grad():
                 weight = BlockSparseMatrixConstructor.from_dense(torch_nn_linear.weight, block_shape, self.block_count, blocks=block_mask)
             weight.multiply_(1.0 / math.sqrt(density))
