@@ -154,6 +154,7 @@ class BlockSparseLinearFunction(torch.autograd.Function):
         return grad_input1, grad_weight1, None
 
 
+
 class BlockSparseLinear(nn.Module):
     OPTIMIZED_BLOCK_SIZE = 32
 
@@ -174,7 +175,6 @@ class BlockSparseLinear(nn.Module):
         self._optimized = (
             self.block_shape[0] == self.OPTIMIZED_BLOCK_SIZE and self.block_shape[1] == self.OPTIMIZED_BLOCK_SIZE
         )
-
         if torch_nn_linear is not None:
             in_features = torch_nn_linear.in_features
             out_features = torch_nn_linear.out_features
@@ -205,8 +205,9 @@ class BlockSparseLinear(nn.Module):
             BlockSparseMatrixConstructor = BlockSparseMatrixEmulator
 
         if torch_nn_linear is not None:
+            block_mask = self.get_block_mask(weight.data, block_shape, density)
             with torch.no_grad():
-                weight = BlockSparseMatrixConstructor.from_dense(torch_nn_linear.weight, block_shape, self.block_count)
+                weight = BlockSparseMatrixConstructor.from_dense(torch_nn_linear.weight, block_shape, self.block_count, blocks=block_mask)
             weight.multiply_(1.0 / math.sqrt(density))
         else:
             weight = BlockSparseMatrixConstructor.randn(
@@ -232,6 +233,29 @@ class BlockSparseLinear(nn.Module):
             x = x + self.bias
         return x
 
+    def get_block_mask(self, weight, block_shape, density):
+        w_h, w_w = weight.size()
+        H, W = w_h // block_shape[0], w_w // block_shape[1]
+        block_sum = {}
+        sum_values = []
+        for i in range(H):
+            for j in range(W):
+                i_start = (i-1) * block_shape[0]
+                i_end = i_start + block_shape[0]
+                j_start = (j-1) * block_shape[1]
+                j_end = j_start + block_shape[1]
+
+                block_sum[(i, j)] = torch.sum(weight[i_start:i_end, j_start:j_end])
+                sum_values.append(block_sum[(i,j)].item())
+
+        _sums = sorted(sum_values)
+        sparsity = 1-density
+        threshold = _sums[int(len(_sums)*sparsity)]
+        block_masks = []
+        for key in block_sum:
+            if block_sum[key] > threshold:
+                block_masks.append(key)
+        return block_masks
 
 class PseudoBlockSparseLinear(torch.nn.Module):
     """For debugging purposes mostly: emulate a BlockSparseLinear with only PyTorch primitives."""
