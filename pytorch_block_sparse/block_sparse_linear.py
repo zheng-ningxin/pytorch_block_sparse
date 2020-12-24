@@ -255,6 +255,8 @@ class BlockSparseLinear(nn.Module):
         for key in block_sum:
             if block_sum[key] > threshold:
                 block_masks.append(key)
+        print('Block Mask')
+        print(block_masks)
         return block_masks
 
 class PseudoBlockSparseLinear(torch.nn.Module):
