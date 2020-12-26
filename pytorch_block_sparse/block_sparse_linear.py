@@ -234,7 +234,8 @@ class BlockSparseLinear(nn.Module):
         return x
 
     def get_block_mask(self, weight, block_shape, density):
-        w_h, w_w = weight.size()
+        weight_abs = torch.abs(weight)
+        w_h, w_w = weight_abs.size()
         H, W = w_h // block_shape[0], w_w // block_shape[1]
         block_sum = {}
         sum_values = []
@@ -245,7 +246,7 @@ class BlockSparseLinear(nn.Module):
                 j_start = (j-1) * block_shape[1]
                 j_end = j_start + block_shape[1]
 
-                block_sum[(i, j)] = torch.sum(weight[i_start:i_end, j_start:j_end])
+                block_sum[(i, j)] = torch.sum(weight_abs[i_start:i_end, j_start:j_end])
                 sum_values.append(block_sum[(i,j)].item())
 
         _sums = sorted(sum_values)
