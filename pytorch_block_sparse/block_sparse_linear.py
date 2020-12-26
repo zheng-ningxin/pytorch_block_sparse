@@ -241,9 +241,9 @@ class BlockSparseLinear(nn.Module):
         sum_values = []
         for i in range(H):
             for j in range(W):
-                i_start = (i-1) * block_shape[0]
+                i_start = i * block_shape[0]
                 i_end = i_start + block_shape[0]
-                j_start = (j-1) * block_shape[1]
+                j_start = j * block_shape[1]
                 j_end = j_start + block_shape[1]
 
                 block_sum[(i, j)] = torch.sum(weight_abs[i_start:i_end, j_start:j_end])
